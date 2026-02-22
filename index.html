@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Gestion d'armoires à bacs (aperçu couleurs)</title>
+	<link rel="manifest" href="manifest.json">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="theme-color" content="#1e3a5f">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f3f7;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 12px;
+        }
+
+        #app {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0, 10, 30, 0.1);
+            overflow: hidden;
+            padding: 20px 16px;
+            margin: 10px 0;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .header select {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 60px;
+            border: 1px solid #d9e1ec;
+            background: #f9fcff;
+            font-size: 16px;
+            font-weight: 500;
+            color: #1e2f4a;
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23344e6c" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+
+        .btn {
+            background: #1e3a5f;
+            border: none;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 12px rgba(20, 50, 80, 0.15);
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.2);
+            white-space: nowrap;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #1e3a5f;
+            border: 1px solid #b7c9e0;
+            box-shadow: none;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        .btn-icon {
+            padding: 14px 16px;
+            border-radius: 60px;
+            background: #eef3fc;
+            color: #1e3a5f;
+            font-weight: bold;
+            border: 1px solid #ccd9ec;
+            cursor: pointer;
+        }
+
+        .view { display: block; }
+        .hidden { display: none !important; }
+
+        .search-box {
+            margin: 20px 0 16px;
+            display: flex;
+            gap: 8px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 16px 18px;
+            border-radius: 60px;
+            border: 1px solid #d0ddee;
+            background: #f9fcff;
+            font-size: 16px;
+        }
+        .search-box button {
+            background: #1e3a5f;
+            border: none;
+            color: white;
+            width: 56px;
+            border-radius: 60px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Schéma armoire */
+        .armoire-schema {
+            background: #e6edf6;
+            border-radius: 40px;
+            padding: 24px 16px;
+            margin: 20px 0;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .etagere { margin-bottom: 16px; }
+        .etagere-label {
+            font-weight: 600;
+            color: #1e3a5f;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .bacs-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .bac-mini {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: var(--couleur);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(0,0,0,0.7);
+            font-size: 10px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border: 2px solid white;
+            cursor: pointer;
+            position: relative;
+        }
+        .bac-mini.highlight {
+            border: 4px solid #ffcc00;
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px #ffe166;
+        }
+        .bac-mini .categorie-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+        .bac-mini .categorie-badge {
+            background: white;
+            border-radius: 30px;
+            padding: 2px 4px;
+            font-size: 8px;
+            font-weight: 600;
+            color: #1e3f62;
+            margin-top: 2px;
+            text-transform: uppercase;
+            max-width: 50px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Résultats recherche */
+        .results-panel {
+            background: #ffffff;
+            border-radius: 30px;
+            padding: 16px;
+            margin: 16px 0;
+            box-shadow: 0 8px 22px rgba(0,30,60,0.08);
+        }
+        .result-item {
+            padding: 12px 16px;
+            background: #eef3fc;
+            border-radius: 30px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .result-badge {
+            background: #1e3a5f;
+            color: white;
+            border-radius: 40px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Configuration */
+        .config-panel {
+            background: #f7faff;
+            border-radius: 36px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+        .config-group { margin-bottom: 24px; }
+        .config-group label {
+            font-weight: 600;
+            color: #1e3f62;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .config-group input, .config-group textarea, .config-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 40px;
+            border: 1px solid #cdddec;
+            background: white;
+            font-size: 15px;
+        }
+        .etagere-config {
+            background: white;
+            border-radius: 28px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .bac-config-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .bac-config-item {
+            background: #eaf0fa;
+            border-radius: 30px;
+            padding: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        .bac-config-item select, .bac-config-item input {
+            width: auto;
+            flex: 1 1 100px;
+            padding: 10px 12px;
+            border-radius: 40px;
+        }
+        .bac-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-left: auto;
+            align-items: center;
+        }
+        .bac-actions button {
+            background: #d4e0f0;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-suppr {
+            background: #fee2e2;
+            color: #a12b2b;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-add {
+            background: #deeaf9;
+            color: #1e3a5f;
+            border: none;
+            border-radius: 40px;
+            padding: 14px 18px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        hr { border: 1px solid #dbe2ed; margin: 20px 0; }
+
+        .nouvelle-categorie-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .nouvelle-categorie-row input { flex: 2; }
+        .nouvelle-categorie-row select { flex: 1; }
+
+        .icone-preview { font-size: 24px; margin-right: 8px; }
+
+        .deplacer-menu {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 8px;
+            background: #f0f5fe;
+            border-radius: 40px;
+            padding: 8px;
+        }
+        .deplacer-menu select { flex: 1; }
+
+        /* Couleurs */
+        .vert-anis { background: #9ACD32; }
+        .rose { background: #FF69B4; }
+        .bleu { background: #3B82F6; }
+        .violet { background: #9B59B6; }
+        .blanc { background: #F0F0F0; border: 1px solid #ccc; }
+        .rouge { background: #FF0000; color: white; text-shadow: 0 1px 2px black; }
+        .noir { background: #000000; color: white; text-shadow: 0 1px 2px black; }
+
+        /* Aperçu couleur dans config */
+        .couleur-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 5px;
+            border: 1px solid #999;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="header">
+        <select id="armoireSelect"></select>
+        <button class="btn-icon" id="newArmoireBtn" title="Nouvelle armoire">➕</button>
+        <button class="btn" id="configBtn"><span>⚙️</span> Config</button>
+    </div>
+
+    <!-- Vue Visualisation -->
+    <div id="viewVisual" class="view">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Outil, pièce...">
+            <button id="searchBtn">🔍</button>
+        </div>
+        <div id="searchResults" class="results-panel hidden"></div>
+        <div id="armoireSchema" class="armoire-schema"></div>
+        <p style="color:#556e8b; font-size:14px; text-align:center;">Cliquez sur un bac pour voir le détail</p>
+    </div>
+
+    <!-- Vue Configuration -->
+    <div id="viewConfig" class="view hidden">
+        <div class="config-panel">
+            <div class="config-group">
+                <label>Nom de l'armoire</label>
+                <input type="text" id="configNom" placeholder="ex: Atelier sud">
+            </div>
+            <div class="config-group">
+                <label>Nombre d'étagères</label>
+                <input type="number" id="configNbEtageres" min="1" max="10" value="3">
+            </div>
+            <div id="etageresConfigContainer"></div>
+            <button class="btn-add" id="addEtagereBtn">➕ Ajouter une étagère</button>
+
+            <!-- Gestion des catégories -->
+            <hr>
+            <div class="config-group">
+                <label>Nouvelle catégorie</label>
+                <div class="nouvelle-categorie-row">
+                    <input type="text" id="newCategorieInput" placeholder="Nom de la catégorie">
+                    <select id="newCategorieIcone">
+                        <option value="📦">📦</option>
+                        <option value="🔧">🔧</option>
+                        <option value="⚡">⚡</option>
+                        <option value="🔩">🔩</option>
+                        <option value="🛠️">🛠️</option>
+                        <option value="🔌">🔌</option>
+                        <option value="🧹">🧹</option>
+                        <option value="🎨">🎨</option>
+                        <option value="🧪">🧪</option>
+                        <option value="🔨">🔨</option>
+                        <option value="🪛">🪛</option>
+                        <option value="💡">💡</option>
+                        <option value="📐">📐</option>
+                        <option value="🔫">🔫</option>
+                    </select>
+                    <button class="btn-small" id="addCategorieBtn">Ajouter</button>
+                </div>
+                <small style="color:#607d8b;">Catégories existantes : <span id="categoriesListSpan"></span></small>
+            </div>
+
+            <hr>
+            <div class="actions">
+                <button class="btn-outline btn-small" id="cancelConfig">Annuler</button>
+                <button class="btn-small" id="saveConfig">💾 Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale détail bac -->
+    <div id="bacModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); backdrop-filter:blur(5px); align-items:center; justify-content:center; z-index:1000;">
+        <div style="background:white; max-width:350px; width:90%; border-radius:48px; padding:24px;">
+            <h3 id="modalBacNom" style="margin-bottom:12px;">Bac</h3>
+            <div id="modalContent" style="margin-bottom:20px; max-height:300px; overflow-y:auto;"></div>
+            <button class="btn-small" style="width:100%;" id="closeModal">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Couleurs disponibles
+        const COLOR_LIST = ['vert-anis', 'rose', 'bleu', 'violet', 'blanc', 'rouge', 'noir'];
+        const COLOR_MAP = {
+            'vert-anis': '#9ACD32',
+            'rose': '#FF69B4',
+            'bleu': '#3B82F6',
+            'violet': '#9B59B6',
+            'blanc': '#F0F0F0',
+            'rouge': '#FF0000',
+            'noir': '#000000'
+        };
+
+        // Catégories avec icônes (intégralement personnalisables)
+        let categories = {
+            "plomberie": "💧",
+            "électricité": "⚡",
+            "quincaillerie": "⚙️",
+            "outillage": "🛠️",
+            "divers": "📦",
+            "outillage electroportatif": "🔌",
+            "nettoyage": "🧽",
+            "peinture": "🎨",
+            "produits chimiques": "🔥"
+        };
+
+        // Liste des icônes proposées pour les nouvelles catégories
+        const iconesDisponibles = ['🔑','🔧','🔒','🔩','🪚️','🗑️','🧹','☣️','🧪','🔨','🪛','💡','📐'];
+
+        // Données des armoires
+        let armoires = [
+            {
+                id: 'a1',
+                nom: 'Armoire principale',
+                etageres: [
+                    { numero: 1, bacs: [
+                        { couleur: 'vert-anis', categorie: 'plomberie', contenu: [{ nom: 'raccord laiton', qte: 5 }, { nom: 'joint caoutchouc', qte: 12 }] },
+                        { couleur: 'rose', categorie: 'électricité', contenu: [{ nom: 'domino wago', qte: 20 }] }
+                    ]},
+                    { numero: 2, bacs: [
+                        { couleur: 'bleu', categorie: 'quincaillerie', contenu: [{ nom: 'vis 4x40', qte: 200 }] },
+                        { couleur: 'violet', categorie: 'outillage', contenu: [{ nom: 'tournevis torx', qte: 3 }] },
+                        { couleur: 'blanc', categorie: 'divers', contenu: [{ nom: 'chiffons', qte: 5 }] }
+                    ]}
+                ]
+            },
+            {
+                id: 'a2',
+                nom: 'Étagère de secours',
+                etageres: [
+                    { numero: 1, bacs: [
+                        { couleur: 'bleu', categorie: 'plomberie', contenu: [{ nom: 'tube PER', qte: 2 }] }
+                    ]}
+                ]
+            }
+        ];
+
+        let currentArmoireId = 'a1';
+        let currentView = 'visual';
+        let searchResults = [];
+        let highlightBacId = null;
+
+        // Éléments DOM
+        const selectArmoire = document.getElementById('armoireSelect');
+        const newArmoireBtn = document.getElementById('newArmoireBtn');
+        const btnConfig = document.getElementById('configBtn');
+        const viewVisual = document.getElementById('viewVisual');
+        const viewConfig = document.getElementById('viewConfig');
+        const armoireSchemaDiv = document.getElementById('armoireSchema');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResultsDiv = document.getElementById('searchResults');
+        const configNom = document.getElementById('configNom');
+        const configNbEtageres = document.getElementById('configNbEtageres');
+        const etageresConfigContainer = document.getElementById('etageresConfigContainer');
+        const addEtagereBtn = document.getElementById('addEtagereBtn');
+        const cancelConfig = document.getElementById('cancelConfig');
+        const saveConfig = document.getElementById('saveConfig');
+        const modal = document.getElementById('bacModal');
+        const modalBacNom = document.getElementById('modalBacNom');
+        const modalContent = document.getElementById('modalContent');
+        const closeModal = document.getElementById('closeModal');
+        const newCategorieInput = document.getElementById('newCategorieInput');
+        const newCategorieIcone = document.getElementById('newCategorieIcone');
+        const addCategorieBtn = document.getElementById('addCategorieBtn');
+        const categoriesListSpan = document.getElementById('categoriesListSpan');
+
+        // Sauvegarde locale
+        function saveToLocal() {
+            localStorage.setItem('armoires_bacs', JSON.stringify(armoires));
+            localStorage.setItem('categories', JSON.stringify(categories));
+        }
+
+        function loadFromLocal() {
+            const savedArmoires = localStorage.getItem('armoires_bacs');
+            if (savedArmoires) {
+                try { armoires = JSON.parse(savedArmoires); } catch(e) {}
+            }
+            const savedCategories = localStorage.getItem('categories');
+            if (savedCategories) {
+                try { categories = JSON.parse(savedCategories); } catch(e) {}
+            }
+        }
+        loadFromLocal();
+
+        function getCurrentArmoire() {
+            return armoires.find(a => a.id === currentArmoireId) || armoires[0];
+        }
+
+        function populateArmoireSelect() {
+            selectArmoire.innerHTML = '';
+            armoires.forEach(a => {
+                const option = document.createElement('option');
+                option.value = a.id;
+                option.textContent = a.nom;
+                if (a.id === currentArmoireId) option.selected = true;
+                selectArmoire.appendChild(option);
+            });
+        }
+
+        function generateId() { return 'a' + Date.now() + Math.random().toString(36).substr(2, 6); }
+
+        function updateCategoriesSpan() {
+            categoriesListSpan.textContent = Object.keys(categories).join(', ');
+        }
+
+        // Ajouter une nouvelle catégorie avec icône
+        function addCategorie(nom, icone) {
+            if (nom && !categories.hasOwnProperty(nom)) {
+                categories[nom] = icone;
+                saveToLocal();
+                updateCategoriesSpan();
+                if (currentView === 'config') renderConfig();
+            }
+        }
+
+        // Rendu du schéma (visualisation)
+        function renderSchema() {
+            const armoire = getCurrentArmoire();
+            if (!armoire) return;
+            let html = '';
+            armoire.etageres.forEach(etagere => {
+                html += `<div class="etagere"><div class="etagere-label">Étagère ${etagere.numero}</div><div class="bacs-row">`;
+                etagere.bacs.forEach((bac, idx) => {
+                    const bacId = `${armoire.id}-${etagere.numero}-${idx}`;
+                    const highlightClass = (highlightBacId === bacId) ? 'highlight' : '';
+                    const icone = categories[bac.categorie] || '📦';
+                    html += `<div class="bac-mini ${bac.couleur} ${highlightClass}" data-bacid="${bacId}" data-armoire="${armoire.id}" data-etagere="${etagere.numero}" data-index="${idx}">
+                        <span class="categorie-icon">${icone}</span>
+                        <span class="categorie-badge">${bac.categorie.slice(0,3)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            });
+            armoireSchemaDiv.innerHTML = html || '<p style="text-align:center">Aucune étagère configurée</p>';
+
+            document.querySelectorAll('.bac-mini').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const armoireId = el.dataset.armoire;
+                    const etagereNum = parseInt(el.dataset.etagere);
+                    const index = parseInt(el.dataset.index);
+                    const armoire = armoires.find(a => a.id === armoireId);
+                    if (!armoire) return;
+                    const etagere = armoire.etageres.find(e => e.numero === etagereNum);
+                    if (!etagere) return;
+                    const bac = etagere.bacs[index];
+                    if (!bac) return;
+                    modalBacNom.textContent = `Bac ${bac.categorie} (${bac.couleur})`;
+                    let contenuHtml = '<ul style="list-style:none;padding:0;">';
+                    if (bac.contenu.length === 0) contenuHtml += '<li>🫙 Vide</li>';
+                    else bac.contenu.forEach(item => {
+                        contenuHtml += `<li style="padding:6px 0; border-bottom:1px dashed #ddd;">🔹 ${item.nom} x${item.qte}</li>`;
+                    });
+                    contenuHtml += '</ul>';
+                    modalContent.innerHTML = contenuHtml;
+                    modal.style.display = 'flex';
+                });
+            });
+        }
+
+        // Recherche
+        function performSearch() {
+            const term = searchInput.value.trim().toLowerCase();
+            if (!term) {
+                searchResultsDiv.classList.add('hidden');
+                return;
+            }
+            const results = [];
+            armoires.forEach(armoire => {
+                armoire.etageres.forEach(etagere => {
+                    etagere.bacs.forEach((bac, idx) => {
+                        bac.contenu.forEach(item => {
+                            if (item.nom.toLowerCase().includes(term)) {
+                                results.push({
+                                    armoireId: armoire.id,
+                                    armoireNom: armoire.nom,
+                                    etagere: etagere.numero,
+                                    bacIndex: idx,
+                                    bacCouleur: bac.couleur,
+                                    article: item.nom,
+                                    qte: item.qte,
+                                    bacId: `${armoire.id}-${etagere.numero}-${idx}`
+                                });
+                            }
+                        });
+                    });
+                });
+            });
+            searchResults = results;
+            if (results.length === 0) {
+                searchResultsDiv.innerHTML = '<div class="result-item">⛔ Aucun article trouvé</div>';
+            } else {
+                let html = '';
+                results.forEach(r => {
+                    html += `<div class="result-item" data-bacid="${r.bacId}" data-armoireid="${r.armoireId}">
+                        <span class="result-badge">${r.armoireNom}</span>
+                        <span>Étag.${r.etagere} · <strong>${r.article}</strong> (x${r.qte})</span>
+                    </div>`;
+                });
+                searchResultsDiv.innerHTML = html;
+                document.querySelectorAll('.result-item').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const bacId = el.dataset.bacid;
+                        const armoireId = el.dataset.armoireid;
+                        currentArmoireId = armoireId;
+                        populateArmoireSelect();
+                        highlightBacId = bacId;
+                        renderSchema();
+                        searchResultsDiv.classList.add('hidden');
+                        searchInput.value = '';
+                        if (currentView === 'config') switchToVisual();
+                        else viewVisual.classList.remove('hidden');
+                    });
+                });
+            }
+            searchResultsDiv.classList.remove('hidden');
+        }
+
+        // Fonctions de déplacement des bacs
+        function deplacerBac(armoireId, fromEtagereNum, fromIndex, toEtagereNum, toIndex = null) {
+            const armoire = armoires.find(a => a.id === armoireId);
+            if (!armoire) return;
+            const fromEtagere = armoire.etageres.find(e => e.numero === fromEtagereNum);
+            const toEtagere = armoire.etageres.find(e => e.numero === toEtagereNum);
+            if (!fromEtagere || !toEtagere) return;
+            const bac = fromEtagere.bacs.splice(fromIndex, 1)[0];
+            if (toIndex === null || toIndex >= toEtagere.bacs.length) {
+                toEtagere.bacs.push(bac);
+            } else {
+                toEtagere.bacs.splice(toIndex, 0, bac);
+            }
+            saveToLocal();
+            renderConfig(); // on reste en config
+        }
+
+        function echangerBac(armoireId, etagereNum, index, direction) {
+            const armoire = armoires.find(a => a.id === armoireId);
+            if (!armoire) return;
+            const etagere = armoire.etageres.find(e => e.numero === etagereNum);
+            if (!etagere) return;
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= etagere.bacs.length) return;
+            [etagere.bacs[index], etagere.bacs[newIndex]] = [etagere.bacs[newIndex], etagere.bacs[index]];
+            saveToLocal();
+            renderConfig();
+        }
+
+        // NOUVELLE FONCTION : déplacer un bac vers une autre armoire
+        function deplacerBacVersArmoire(sourceArmoireId, sourceEtagereNum, sourceIndex, destArmoireId, destEtagereNum) {
+            const sourceArmoire = armoires.find(a => a.id === sourceArmoireId);
+            const destArmoire = armoires.find(a => a.id === destArmoireId);
+            if (!sourceArmoire || !destArmoire) return;
+            const sourceEtagere = sourceArmoire.etageres.find(e => e.numero === sourceEtagereNum);
+            const destEtagere = destArmoire.etageres.find(e => e.numero === destEtagereNum);
+            if (!sourceEtagere || !destEtagere) return;
+            const bac = sourceEtagere.bacs.splice(sourceIndex, 1)[0];
+            destEtagere.bacs.push(bac);
+            saveToLocal();
+            // Si on est en train de configurer l'armoire source ou destination, on rafraîchit
+            if (currentView === 'config') renderConfig();
+        }
+
+        // Rendu de la configuration
+        function renderConfig() {
+            const armoire = getCurrentArmoire();
+            if (!armoire) return;
+            configNom.value = armoire.nom;
+            configNbEtageres.value = armoire.etageres.length;
+
+            let html = '';
+            armoire.etageres.forEach((etagere, eIdx) => {
+                html += `<div class="etagere-config" data-eidx="${eIdx}">
+                    <strong>Étagère ${etagere.numero}</strong>
+                    <div class="bac-config-list" id="bacs-list-${eIdx}">`;
+                etagere.bacs.forEach((bac, bIdx) => {
+                    // Construction des options pour les sélecteurs de destination (armoire et étagère)
+                    let armoiresOptions = '';
+                    armoires.forEach(a => {
+                        armoiresOptions += `<option value="${a.id}">${a.nom}</option>`;
+                    });
+
+                    let etageresOptionsSimples = '';
+                    for (let i = 1; i <= 10; i++) {
+                        etageresOptionsSimples += `<option value="${i}">Étagère ${i}</option>`;
+                    }
+
+                    // Début du bloc du bac
+                    html += `<div class="bac-config-item" data-bidx="${bIdx}">`;
+                    
+                    // Select couleur
+                    html += `<select class="bac-couleur" data-eidx="${eIdx}" data-bidx="${bIdx}">`;
+                    COLOR_LIST.forEach(couleur => {
+                        html += `<option value="${couleur}" ${bac.couleur === couleur ? 'selected' : ''}>${couleur}</option>`;
+                    });
+                    html += `</select>`;
+
+                    // Aperçu couleur
+                    let colorHex = COLOR_MAP[bac.couleur] || '#cccccc';
+                    html += `<span class="couleur-preview" style="background-color: ${colorHex};"></span>`;
+
+                    // Select catégorie
+                    html += `<select class="bac-cat" data-eidx="${eIdx}" data-bidx="${bIdx}">`;
+                    Object.keys(categories).forEach(cat => {
+                        html += `<option value="${cat}" ${bac.categorie === cat ? 'selected' : ''}>${cat} ${categories[cat]}</option>`;
+                    });
+                    html += `</select>`;
+
+                    // Champ contenu
+                    html += `<input type="text" class="bac-contenu" placeholder="Articles (ex: vis 4x40x5)" value="${bac.contenu.map(c => `${c.nom}x${c.qte}`).join(', ')}" data-eidx="${eIdx}" data-bidx="${bIdx}">`;
+
+                    // Actions
+                    html += `<div class="bac-actions">
+                        ${bIdx > 0 ? `<button class="move-up" data-eidx="${eIdx}" data-bidx="${bIdx}">↑</button>` : ''}
+                        ${bIdx < etagere.bacs.length-1 ? `<button class="move-down" data-eidx="${eIdx}" data-bidx="${bIdx}">↓</button>` : ''}
+                        <select class="deplacer-armoire" data-eidx="${eIdx}" data-bidx="${bIdx}">${armoiresOptions}</select>
+                        <select class="deplacer-etagere" data-eidx="${eIdx}" data-bidx="${bIdx}">${etageresOptionsSimples}</select>
+                        <button class="deplacer-btn" data-eidx="${eIdx}" data-bidx="${bIdx}">↪️</button>
+                        <button class="btn-suppr suppr-bac" data-eidx="${eIdx}" data-bidx="${bIdx}">🗑️</button>
+                    </div>`;
+
+                    html += `</div>`; // fin bac-config-item
+                });
+                html += `</div>
+                    <button class="btn-add add-bac" data-eidx="${eIdx}">➕ Ajouter un bac sur étagère ${etagere.numero}</button>
+                </div>`;
+            });
+            etageresConfigContainer.innerHTML = html;
+
+            // Événements pour la mise à jour de l'aperçu couleur
+            document.querySelectorAll('.bac-couleur').forEach(select => {
+                select.addEventListener('change', function(e) {
+                    const span = this.nextElementSibling; // le span juste après
+                    if (span && span.classList.contains('couleur-preview')) {
+                        const couleur = this.value;
+                        span.style.backgroundColor = COLOR_MAP[couleur] || '#cccccc';
+                    }
+                });
+            });
+
+            // Événements
+            document.querySelectorAll('.suppr-bac').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const eidx = btn.dataset.eidx;
+                    const bidx = btn.dataset.bidx;
+                    const armoire = getCurrentArmoire();
+                    armoire.etageres[eidx].bacs.splice(bidx, 1);
+                    renderConfig();
+                });
+            });
+
+            document.querySelectorAll('.add-bac').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const eidx = btn.dataset.eidx;
+                    const armoire = getCurrentArmoire();
+                    const premiereCategorie = Object.keys(categories)[0] || 'divers';
+                    armoire.etageres[eidx].bacs.push({ couleur: 'blanc', categorie: premiereCategorie, contenu: [] });
+                    renderConfig();
+                });
+            });
+
+            // Déplacement haut/bas
+            document.querySelectorAll('.move-up').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const eidx = parseInt(btn.dataset.eidx);
+                    const bidx = parseInt(btn.dataset.bidx);
+                    echangerBac(currentArmoireId, armoire.etageres[eidx].numero, bidx, -1);
+                });
+            });
+            document.querySelectorAll('.move-down').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const eidx = parseInt(btn.dataset.eidx);
+                    const bidx = parseInt(btn.dataset.bidx);
+                    echangerBac(currentArmoireId, armoire.etageres[eidx].numero, bidx, 1);
+                });
+            });
+
+            // Déplacement inter-armoires
+            document.querySelectorAll('.deplacer-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const eidx = parseInt(btn.dataset.eidx);
+                    const bidx = parseInt(btn.dataset.bidx);
+                    const selectArm = btn.parentElement.querySelector('.deplacer-armoire');
+                    const selectEtag = btn.parentElement.querySelector('.deplacer-etagere');
+                    const destArmoireId = selectArm.value;
+                    const destEtagereNum = parseInt(selectEtag.value);
+                    const armoireSource = getCurrentArmoire();
+                    deplacerBacVersArmoire(currentArmoireId, armoireSource.etageres[eidx].numero, bidx, destArmoireId, destEtagereNum);
+                });
+            });
+
+            updateCategoriesSpan();
+        }
+
+        function saveConfigHandler() {
+            const armoire = getCurrentArmoire();
+            armoire.nom = configNom.value;
+            const newEtageres = [];
+            const eContainers = document.querySelectorAll('.etagere-config');
+            eContainers.forEach((container, eIdx) => {
+                const numero = eIdx + 1;
+                const bacs = [];
+                const bacItems = container.querySelectorAll('.bac-config-item');
+                bacItems.forEach(item => {
+                    const selectCouleur = item.querySelector('.bac-couleur');
+                    const selectCat = item.querySelector('.bac-cat');
+                    const inputContenu = item.querySelector('.bac-contenu');
+                    const couleur = selectCouleur.value;
+                    const categorie = selectCat.value;
+                    const contenu = [];
+                    const parts = inputContenu.value.split(',').map(s => s.trim()).filter(s => s);
+                    parts.forEach(p => {
+                        const match = p.match(/(.+?)(?:x(\d+))?$/);
+                        if (match) {
+                            const nom = match[1].trim();
+                            const qte = match[2] ? parseInt(match[2]) : 1;
+                            contenu.push({ nom, qte });
+                        }
+                    });
+                    bacs.push({ couleur, categorie, contenu });
+                });
+                newEtageres.push({ numero, bacs });
+            });
+            armoire.etageres = newEtageres;
+            saveToLocal();
+            switchToVisual();
+            renderSchema();
+        }
+
+        function switchToVisual() {
+            currentView = 'visual';
+            viewVisual.classList.remove('hidden');
+            viewConfig.classList.add('hidden');
+            renderSchema();
+        }
+
+        function switchToConfig() {
+            currentView = 'config';
+            viewVisual.classList.add('hidden');
+            viewConfig.classList.remove('hidden');
+            renderConfig();
+        }
+
+        function createNewArmoire() {
+            const newId = generateId();
+            const newArmoire = {
+                id: newId,
+                nom: 'Nouvelle armoire',
+                etageres: [{ numero: 1, bacs: [] }]
+            };
+            armoires.push(newArmoire);
+            currentArmoireId = newId;
+            populateArmoireSelect();
+            saveToLocal();
+            switchToConfig();
+        }
+
+        // Événements
+        selectArmoire.addEventListener('change', (e) => {
+            currentArmoireId = e.target.value;
+            highlightBacId = null;
+            if (currentView === 'visual') renderSchema();
+            else renderConfig();
+        });
+
+        newArmoireBtn.addEventListener('click', createNewArmoire);
+
+        btnConfig.addEventListener('click', () => {
+            if (currentView === 'visual') switchToConfig();
+            else switchToVisual();
+        });
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+
+        cancelConfig.addEventListener('click', switchToVisual);
+        saveConfig.addEventListener('click', saveConfigHandler);
+
+        addEtagereBtn.addEventListener('click', () => {
+            const armoire = getCurrentArmoire();
+            const newNumero = armoire.etageres.length + 1;
+            armoire.etageres.push({ numero: newNumero, bacs: [] });
+            renderConfig();
+        });
+
+        addCategorieBtn.addEventListener('click', () => {
+            const nouvelle = newCategorieInput.value.trim();
+            const icone = newCategorieIcone.value;
+            if (nouvelle) {
+                addCategorie(nouvelle, icone);
+                newCategorieInput.value = '';
+            }
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Initialisation
+        populateArmoireSelect();
+        renderSchema();
+        updateCategoriesSpan();
+        if (armoires.length === 0) createNewArmoire();
+    })();
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker enregistré!', reg))
+                .catch(err => console.log('Échec de l\'enregistrement du Service Worker:', err));
+        });
+    }
+</script>
+</body>
+</html>
